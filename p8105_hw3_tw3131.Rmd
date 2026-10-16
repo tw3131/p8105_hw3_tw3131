@@ -4,8 +4,151 @@ author: "Tianqing Wang"
 output: github_document
 ---
 
+```{r}
+library(tidyverse)
+library(p8105.datasets)
+```
+
 # Problem 1  NY NOAA Weather Data
+The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and indicating the extent to which missing data is an issue. Then, do or answer the following (commenting on the results of each):
+
+• Do some data cleaning. Create separate variables for year, month, and day. Ensure observations for temperature, precipitation, and snowfall are given in reasonable units. For snowfall, what are the most commonly observed values? Why?
+
+• Make a two-panel plot showing the average max temperature in January and in July in each station across years. Is there any observable / interpretable structure? Any outliers?
+
+• Make a two-panel plot showing (i) tmax vs tmin for the full dataset (note that a scatterplot may not be the best option); and (ii) make a plot showing the distribution of snowfall values greater than 0 and less than 100 separately by year.
+
+## Import and describe the dataset
+```{r}
+library(p8105.datasets)
+data("ny_noaa")
+names(ny_noaa)
+dim(ny_noaa)
+str(ny_noaa)
+head(ny_noaa,50)
+```
+
+
+```{r}
+ny_noaa|>
+summarize(
+  missing_snow=sum(is.na(snow)),
+  missing_prcp=sum(is.na(prcp)),
+  missing_snwd=sum(is.na(snwd)),
+  missing_tmax=sum(is.na(tmax)),
+  missing_tmin=sum(is.na(tmin))
+)
+```
+Description: This dataset has 7 variables and 2,595,176 observations. Each observation represents a weather record from a specific weather station on a particular date. 
+
+In these variables, " Weather station ID(id), maximum temperature(tmax), minimum temperature(tmin)" are character variables, "(date)" is a date variable, "precipitation(prcp), snowfall(snow), snow depth(snwd)" are integer variables. 
+
+In all these observations, "snow" has 381,221 missing values, "prcp" has 145,838 missing values, "snwd" has 591,786 missing values, "tmax" has 1,134,358 missing values, "tmin" has 1,134,420 missing values.
+
+## Create separate variables for year, month, and day
+```{r}
+ny_noaa = ny_noaa |>
+  mutate(
+    year = lubridate::year(date),
+    month = lubridate::month(date),
+    day = lubridate::day(date)
+  )
+names(ny_noaa)
+dim(ny_noaa)
+head(ny_noaa,50)
+```
+
+## Ensure observations for temperature, precipitation, and snowfall are given in reasonable units. 
+```{r}
+ny_noaa = ny_noaa |>
+  mutate(
+    tmax = as.numeric(tmax) / 10,
+    tmin = as.numeric(tmin) / 10,
+    prcp = prcp / 10
+  )
+str(ny_noaa)
+tail(ny_noaa,100)
+```
+
+## For snowfall, what are the most commonly observed values? Why?
+```{r}
+ny_noaa |>
+  filter(!is.na(snow))|>
+  count(snow, sort= TRUE) |>
+  head(n=10)
+```
+The most commonly observed snowfall value was 0 mm, with 2,008,508 observations, because most days had no snowfall. Other common values included 25 mm, 13 mm, 51 mm, and 76 mm. These values correspond to common snowfall measurements in inches(25 mm=1 inch), which may reflect conversion from inches to millimeters in dataset description.
+
+## Make a two-panel plot showing the average max temperature in January and in July in each station across years. Is there any observable / interpretable structure? Any outliers?
+
+```{r}
+ny_noaa |>
+  filter (month %in% c(1,7),!is.na(tmax)) |>
+  group_by(id, year, month) |>
+  summarize(
+    mean_tmax = mean(tmax)
+    ) |>
+ggplot(aes(x=year, y=mean_tmax, group=id)) +
+  geom_line(alpha=0.3) +
+  facet_grid(.~month) +
+  labs(
+    title = "Average Maximum Temperature Across Years",
+    x= "Year",
+    y= "Mean Maximum Temperature (°C)"
+  ) +
+    theme_minimal()
+```
+The two-panel plot shows that average maximum temperatures in July are substantially higher than those in January across weather stations. Both months show considerable year-to-year variation, with no clear consistent long-term trend. Most weather stations follow similar temperature patterns, although some variation exists between stations.
+
+A potential outlier is observed in July around 1988, where one station has an unusually low average maximum temperature of approximately 14°C. Some unusually low temperatures are also observed in January. These observations may represent outliers, but further examination would be needed to determine whether they are genuine measurements or data errors.
+
+## Make a two-panel plot showing (i) tmax vs tmin for the full dataset (note that a scatterplot may not be the best option); and (ii) make a plot showing the distribution of snowfall values greater than 0 and less than 100 separately by year.
+```{r}
+temp_plot = ny_noaa |>
+  filter(!is.na(tmax),!is.na(tmin)) |>
+  ggplot(aes(x=tmin,y=tmax)) +
+  geom_bin2d() +
+  labs(
+    title = "Maximum Temperature vs Minumum Temperature",
+    x = " Minumum Temperature(°C)",
+    y = "Maximum Temperature(°C)"
+  )+
+    theme_minimal()
+```
+
+```{r}
+snow_plot = ny_noaa |>
+  filter(snow>0,snow<100) |>
+  ggplot(aes(x=factor(year),y=snow)) +
+  geom_boxplot() +
+  labs(
+    title = "Snowfall Distribution by Year",
+    x = "Year",
+    y = "Snowfall(mm)"
+  )+
+    theme_minimal() +
+scale_x_discrete(
+  breaks = c("1985", "1990", "1995",
+             "2000", "2005", "2010")
+)
+```
+
+```{r}
+library(patchwork)
+temp_plot + snow_plot
+```
+The first plot shows a positive relationship between minimum and maximum temperatures. Most observations are concentrated along an upward trend, although there are some possible outliers.
+
+The second plot shows that snowfall distributions are similar across most years, with a median of around 25 mm. A few years have slightly different distributions and some possible outliers.
 
 # Problem 2  Accelerometer Data
+
+
+
+
+
+
+
+
 
 # Problem 3  Citi Bike Data
