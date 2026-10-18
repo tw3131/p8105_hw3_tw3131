@@ -39,6 +39,7 @@ summarize(
   missing_tmin=sum(is.na(tmin))
 )
 ```
+
 Description: This dataset has 7 variables and 2,595,176 observations. Each observation represents a weather record from a specific weather station on a particular date. 
 
 In these variables, " Weather station ID(id), maximum temperature(tmax), minimum temperature(tmin)" are character variables, "(date)" is a date variable, "precipitation(prcp), snowfall(snow), snow depth(snwd)" are integer variables. 
@@ -77,6 +78,7 @@ ny_noaa |>
   count(snow, sort= TRUE) |>
   head(n=10)
 ```
+
 The most commonly observed snowfall value was 0 mm, with 2,008,508 observations, because most days had no snowfall. Other common values included 25 mm, 13 mm, 51 mm, and 76 mm. These values correspond to common snowfall measurements in inches(25 mm=1 inch), which may reflect conversion from inches to millimeters in dataset description.
 
 ## Make a two-panel plot showing the average max temperature in January and in July in each station across years. Is there any observable / interpretable structure? Any outliers?
@@ -98,6 +100,7 @@ ggplot(aes(x=year, y=mean_tmax, group=id)) +
   ) +
     theme_minimal()
 ```
+
 The two-panel plot shows that average maximum temperatures in July are substantially higher than those in January across weather stations. Both months show considerable year-to-year variation, with no clear consistent long-term trend. Most weather stations follow similar temperature patterns, although some variation exists between stations.
 
 A potential outlier is observed in July around 1988, where one station has an unusually low average maximum temperature of approximately 14°C. Some unusually low temperatures are also observed in January. These observations may represent outliers, but further examination would be needed to determine whether they are genuine measurements or data errors.
@@ -137,18 +140,179 @@ scale_x_discrete(
 library(patchwork)
 temp_plot + snow_plot
 ```
+
 The first plot shows a positive relationship between minimum and maximum temperatures. Most observations are concentrated along an upward trend, although there are some possible outliers.
 
 The second plot shows that snowfall distributions are similar across most years, with a median of around 25 mm. A few years have slightly different distributions and some possible outliers.
 
+
+
+
 # Problem 2  Accelerometer Data
 
+## Import and Inspect dataset
+```{r}
+library(readr)
+covar_df=read_csv("./data/nhanes_covar.csv")
+accel_df=read_csv("./data/nhanes_accel.csv")
 
+dim(covar_df)
+dim(accel_df)
+names(covar_df)
+```
 
+## Recode the covar dataset
+```{r}
+covar_df=read_csv("./data/nhanes_covar.csv",
+                  skip = 5,
+                  col_names=c("SEQN","sex","age","BMI","education")
+                  )
+dim(covar_df)
+names(covar_df)
+str(covar_df)
+```
 
+## Data Cleaning (covar_df)
+```{r}
+colSums(is.na(covar_df))
+```
 
+```{r}
+covar_df=covar_df |>
+  filter(!is.na(BMI),
+         !is.na(education),
+         age>=21
+  )
+dim(covar_df)
+colSums(is.na(covar_df))
+```
 
+## Convert categorical variables(covar_df)
+```{r}
+covar_df=covar_df |>
+  mutate(
+    sex=factor(sex,
+           levels=c(1,2),
+           labels=c("male","female")
+    )
+    ,
+    education=factor(education,
+           levels=c(1,2,3),
+           labels=c("Less than high school","High school equivalent","More than high school"),
+           ordered= TRUE
+    )
+  )
 
+str(covar_df)
+table(covar_df$sex)
+table(covar_df$education)
+head(covar_df,10)
+```
 
+## Merge the datasets
+```{r}
+nhanes_df = covar_df |>
+  left_join(accel_df, by="SEQN")
+dim(nhanes_df)
+```
+
+## Make a demographic summary table
+Produce a reader-friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education category. Comment on these items.
+```{r}
+nhanes_df |>
+  count(sex,education)
+```
+
+```{r}
+demo_table = nhanes_df |>
+  count(education,sex) |>
+pivot_wider(
+  names_from=sex,
+    values_from=n
+)
+demo_table
+```
+
+```{r}
+nhanes_df |>
+  ggplot(aes(x=age,color=sex))+
+  geom_density()+
+  facet_wrap(~education)+
+  labs(
+    title="Age Distribution by Sex and Education",
+    x="Age",
+    y="Density",
+    color="Sex"
+  )
+```
+
+Age distributions varied across education categories. Participants with less than a high school education tended to be older, while those with more than a high school education had higher age densities among younger adults. In the high school equivalent group, female participants tended to be older than male participants.
+
+## Total Activity Analysis
+Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate across minutes to create a total activity variable for each participant. Plot these total activities (y-axis) against age (x-axis); your plot should compare men to women and have separate panels for each education level. Include a trend line or a smooth to illustrate differences. Comment on your plot.
+
+```{r}
+nhanes_df=nhanes_df |>
+  mutate(
+    total_activity=rowSums(
+      pick(starts_with("min"))
+    )
+  )
+dim(nhanes_df)
+```
+
+```{r}
+nhanes_df |>
+  ggplot(aes(x=age,y=total_activity,color=sex))+
+  geom_point(alpha=0.5)+
+  geom_smooth()+
+facet_wrap(~education)+
+  labs(
+    title="Association of total Activity and age",
+    x="Age(years)",
+    y="Total Daily Activity(Mins)",
+    color="sex"
+    )
+```
+
+Total daily activity generally decreased with increasing age, although the trends were not strictly linear. In the high school equivalent and more than high school education groups, females tended to have higher total daily activity than males across most ages. In the less than high school education group, females generally had higher activity at younger ages, while males tended to have higher activity after approximately age 50.
+
+## 24-hour Activity Patterns
+Accelerometer data allows the inspection activity over the course of the day. Make a three-panel plot that shows the 24-hour activity time courses for each education level and use color to indicate sex. Describe in words any patterns or conclusions you can make based on this graph; including smooth trends may help identify differences.
+```{r}
+nhanes_long=nhanes_df |>
+  pivot_longer(
+    starts_with("min"),
+    names_to="minute",
+      values_to="activity"
+  )
+dim(nhanes_long)
+str(nhanes_long)
+```
+
+```{r}
+nhanes_long = nhanes_long |>
+  mutate(
+    minute = parse_number(minute)
+  )
+str(nhanes_long)
+```
+
+```{r}
+nhanes_long |>
+group_by(minute,sex,education) |>
+  summarize(mean_activity=mean(activity))|>
+  ggplot(aes(x=minute,y=mean_activity,color=sex))+
+  geom_line(alpha=0.5)+
+  facet_wrap(~education)+
+  labs(
+    title="24-Hour Activity Patterns by Sex and Education",
+    x="Time(mins)",
+    y="Mean Activity",
+    color="Sex"
+  )
+```
+
+Overall, activity levels were higher during the day and lower at night. Females generally had higher daytime activity levels than males, especially in the more than high school education group. Participants with less than a high school education tended to have relatively higher daytime activity levels than those in the high school equivalent group.
 
 # Problem 3  Citi Bike Data
