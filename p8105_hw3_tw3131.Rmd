@@ -364,7 +364,6 @@ dim(citi_df)
 count(citi_df, source)
 head(citi_df)
 ```
-The final combined dataset contains 99,485 observations and 9 variables, covering January and July of 2020 and 2024. Each original dataset represents a 1% sample of Citi Bike rides lasting less than four hours. The combined dataset includes information on ride duration, weekdays, bike type, membership status, starting and ending stations, as well as the newly created year and month variables.
 
 ## Build new variables----year & month
 ```{r}
@@ -378,6 +377,8 @@ citi_df=citi_df |>
 str(citi_df)
 count(citi_df,month,year)
 ```
+
+The final combined dataset contains 99,485 observations and 9 variables, covering January and July of 2020 and 2024. Each original dataset represents a 1% sample of Citi Bike rides lasting less than four hours. The combined dataset includes information on ride duration, weekdays, bike type, membership status, starting and ending stations, as well as the newly created year and month variables.
 
 ## Number of rides by membership status
 Produce a reader-friendly table showing the total number of rides in each combination of year and month separating casual riders and Citi Bike members. Comment on these results.
