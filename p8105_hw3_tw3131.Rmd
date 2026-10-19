@@ -10,13 +10,6 @@ library(p8105.datasets)
 ```
 
 # Problem 1  NY NOAA Weather Data
-The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and indicating the extent to which missing data is an issue. Then, do or answer the following (commenting on the results of each):
-
-• Do some data cleaning. Create separate variables for year, month, and day. Ensure observations for temperature, precipitation, and snowfall are given in reasonable units. For snowfall, what are the most commonly observed values? Why?
-
-• Make a two-panel plot showing the average max temperature in January and in July in each station across years. Is there any observable / interpretable structure? Any outliers?
-
-• Make a two-panel plot showing (i) tmax vs tmin for the full dataset (note that a scatterplot may not be the best option); and (ii) make a plot showing the distribution of snowfall values greater than 0 and less than 100 separately by year.
 
 ## Import and describe the dataset
 ```{r}
@@ -59,7 +52,7 @@ dim(ny_noaa)
 head(ny_noaa,50)
 ```
 
-## Ensure observations for temperature, precipitation, and snowfall are given in reasonable units. 
+## Ensure observations are given in reasonable units. 
 ```{r}
 ny_noaa = ny_noaa |>
   mutate(
@@ -270,7 +263,7 @@ facet_wrap(~education)+
   labs(
     title="Association of total Activity and age",
     x="Age(years)",
-    y="Total Daily Activity(Mins)",
+    y="Total Daily Activity(sum of MIMS)",
     color="sex"
     )
 ```
@@ -369,8 +362,9 @@ citi_df = bind_rows(
 str(citi_df)
 dim(citi_df)
 count(citi_df, source)
-view(head(citi_df))
+head(citi_df)
 ```
+The final combined dataset contains 99,485 observations and 9 variables, covering January and July of 2020 and 2024. Each original dataset represents a 1% sample of Citi Bike rides lasting less than four hours. The combined dataset includes information on ride duration, weekdays, bike type, membership status, starting and ending stations, as well as the newly created year and month variables.
 
 ## Build new variables----year & month
 ```{r}
@@ -410,6 +404,7 @@ head(n=5)
 
 top5_stations
 ```
+
 Pier 61 at Chelsea Piers was the most popular starting station in July 2024, with 163 rides in the sample. The number of rides was relatively similar across the top five stations, ranging from 146 to 163.
 
 ## Median Ride Duration
@@ -419,8 +414,9 @@ Make a plot to investigate the effects of day of the week, month, and year on me
 citi_df |>
   mutate(
     weekdays=factor(weekdays,levels =c(
-      "Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"
-    ))
+      "Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"),
+    labels = c("Mon", "Tue", "Wed", "Thu",
+           "Fri", "Sat", "Sun"))
   ) |>
   group_by(month,year,weekdays) |>
   summarize(
@@ -450,6 +446,7 @@ citi_df |>
   title="Ride Duration Distribution by month, membership status and bike type."
   )
 ```
+
 Ride duration distributions were strongly right-skewed across all groups. Member rides were more concentrated at shorter durations compared with casual rides. Classic and electric bikes showed broadly similar, highly overlapping distributions, although their density peaks varied across groups. The distributions also appeared slightly more spread out in July than in January, particularly among casual riders.
 
 
